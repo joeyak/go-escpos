@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/joeyak/hoin-printer"
+	"github.com/joeyak/go-escpos"
 )
 
-func runTest(testName string, testFunc func(hoin.Printer) error) error {
-	printer, err := hoin.NewIpPrinter(hoin.DefaultPrinterIP)
+func runTest(testName string, testFunc func(escpos.Printer) error) error {
+	printer, err := escpos.NewIpPrinter(escpos.DefaultPrinterIP)
 	if err != nil {
 		return fmt.Errorf("failed test %s: %w", testName, err)
 	}
@@ -31,7 +31,7 @@ func runTest(testName string, testFunc func(hoin.Printer) error) error {
 }
 
 func cleanup() {
-	printer, err := hoin.NewIpPrinter(hoin.DefaultPrinterIP)
+	printer, err := escpos.NewIpPrinter(escpos.DefaultPrinterIP)
 	if err != nil {
 		fmt.Printf("could not create new printer to feed lines: %s\n", err)
 		os.Exit(1)
@@ -43,7 +43,7 @@ func cleanup() {
 }
 
 func main() {
-	tests := []func(hoin.Printer) error{
+	tests := []func(escpos.Printer) error{
 		testBeep,
 		testHT,
 		testLineSpacing,
@@ -81,11 +81,11 @@ func main() {
 
 }
 
-func testBeep(printer hoin.Printer) error {
+func testBeep(printer escpos.Printer) error {
 	return printer.Beep(1, 1)
 }
 
-func testHT(printer hoin.Printer) error {
+func testHT(printer escpos.Printer) error {
 	err := printer.Print("-")
 	if err != nil {
 		return fmt.Errorf("could not print HT prefix: %w", err)
@@ -115,7 +115,7 @@ func testHT(printer hoin.Printer) error {
 	return nil
 }
 
-func testLineSpacing(printer hoin.Printer) error {
+func testLineSpacing(printer escpos.Printer) error {
 	defer printer.ResetLineSpacing()
 
 	for _, spacing := range []int{0, 255} {
@@ -152,7 +152,7 @@ func testLineSpacing(printer hoin.Printer) error {
 	return nil
 }
 
-func testBold(printer hoin.Printer) error {
+func testBold(printer escpos.Printer) error {
 	defer printer.SetBold(false)
 
 	err := printer.Print("Normal ")
@@ -183,7 +183,7 @@ func testBold(printer hoin.Printer) error {
 	return nil
 }
 
-func testRotate90(printer hoin.Printer) error {
+func testRotate90(printer escpos.Printer) error {
 	defer printer.SetRotate90(false)
 
 	err := printer.Println("Control Text")
@@ -209,7 +209,7 @@ func testRotate90(printer hoin.Printer) error {
 	return nil
 }
 
-func testReversePrinter(printer hoin.Printer) error {
+func testReversePrinter(printer escpos.Printer) error {
 	defer printer.SetReversePrinting(false)
 
 	err := printer.Println("Control Text")
@@ -230,10 +230,10 @@ func testReversePrinter(printer hoin.Printer) error {
 	return nil
 }
 
-func testFonts(printer hoin.Printer) error {
-	defer printer.SetFont(hoin.FontA)
+func testFonts(printer escpos.Printer) error {
+	defer printer.SetFont(escpos.FontA)
 
-	err := printer.SetFont(hoin.FontA)
+	err := printer.SetFont(escpos.FontA)
 	if err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func testFonts(printer hoin.Printer) error {
 		return fmt.Errorf("could not print Font A: %w", err)
 	}
 
-	err = printer.SetFont(hoin.FontB)
+	err = printer.SetFont(escpos.FontB)
 	if err != nil {
 		return err
 	}
@@ -256,10 +256,10 @@ func testFonts(printer hoin.Printer) error {
 	return nil
 }
 
-func testJustify(printer hoin.Printer) error {
-	defer printer.Justify(hoin.LeftJustify)
+func testJustify(printer escpos.Printer) error {
+	defer printer.Justify(escpos.LeftJustify)
 
-	err := printer.Justify(hoin.LeftJustify)
+	err := printer.Justify(escpos.LeftJustify)
 	if err != nil {
 		return err
 	}
@@ -269,7 +269,7 @@ func testJustify(printer hoin.Printer) error {
 		return fmt.Errorf("could not print Left Justify: %w", err)
 	}
 
-	err = printer.Justify(hoin.CenterJustify)
+	err = printer.Justify(escpos.CenterJustify)
 	if err != nil {
 		return err
 	}
@@ -279,7 +279,7 @@ func testJustify(printer hoin.Printer) error {
 		return fmt.Errorf("could not print Center Justify: %w", err)
 	}
 
-	err = printer.Justify(hoin.RightJustify)
+	err = printer.Justify(escpos.RightJustify)
 	if err != nil {
 		return err
 	}

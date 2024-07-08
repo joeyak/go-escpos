@@ -1,4 +1,4 @@
-package hoin
+package escpos
 
 import (
 	"fmt"

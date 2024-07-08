@@ -1,4 +1,4 @@
-package hoin
+package escpos
 
 import (
 	"fmt"
@@ -353,7 +353,7 @@ func (p Printer) SetHT(positions ...int) error {
 // the tab value exceeds 256, fewer than 32 positions will be set.
 func (p Printer) SetTabs(width int) error {
 	tabs := []int{}
-	for i := width; i < 256 && len(tabs) < 32; i+=width {
+	for i := width; i < 256 && len(tabs) < 32; i += width {
 		tabs = append(tabs, i)
 	}
 	return p.SetHT(tabs...)

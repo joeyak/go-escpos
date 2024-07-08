@@ -8,6 +8,8 @@ This is a package for writing to ESC/POS Thermal Printers.
 
 The main printer used in development is the HOIN POS-80-Series Thermal Printer (HOP-E802).
 
+This package has no dependencies. The only dependency in the go.mod is `go-arg` for the `printhis` demo utility.
+
 ## Usage
 
 Connect to the printer with an io.ReadWriter and then send commands

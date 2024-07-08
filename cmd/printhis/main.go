@@ -2,18 +2,18 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"net"
-	"io"
-	"strings"
-	"strconv"
-	"path/filepath"
 	"image"
-	"image/png"
 	"image/jpeg"
+	"image/png"
+	"io"
+	"net"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/alexflint/go-arg"
-	"github.com/joeyak/hoin-printer"
+	"github.com/joeyak/go-escpos"
 )
 
 type CmdText struct {
@@ -29,11 +29,11 @@ type CmdImage struct {
 	Input string `arg:"positional,required" help:"Image file to print.  Currently supports PNG and JPEG image formats."`
 }
 
-type CmdCut struct { }
+type CmdCut struct{}
 
 type CmdFeed struct {
-	Amount int `arg:"positional,required" help:"Amount to feed.  If --lines is used, feed this number of lines.  Otherwise it feeds by units defined by the GS P command."`
-	Lines bool `arg:"-l,--lines" help:"Use the line height as the unit of measurement."`
+	Amount int  `arg:"positional,required" help:"Amount to feed.  If --lines is used, feed this number of lines.  Otherwise it feeds by units defined by the GS P command."`
+	Lines  bool `arg:"-l,--lines" help:"Use the line height as the unit of measurement."`
 }
 
 type Arguments struct {
@@ -44,7 +44,7 @@ type Arguments struct {
 	Feed  *CmdFeed  `arg:"subcommand:feed"  help:"Feed the paper"`
 
 	Address string `arg:"-a,--addr" help:"IP address and port of printer"`
-	Device string `arg:"-d,--dev" help:"USB device of printer"`
+	Device  string `arg:"-d,--dev" help:"USB device of printer"`
 }
 
 func (a *Arguments) Description() string {
@@ -58,7 +58,7 @@ func main() {
 	arg.MustParse(args)
 
 	if args.Address == "" && args.Device == "" {
-		args.Address = "192.168.1.23:9100"
+		args.Address = escpos.DefaultPrinterIP
 	}
 
 	printer, closer, err := connect(args)
@@ -75,8 +75,8 @@ func main() {
 	}
 }
 
-func connect(args *Arguments) (*hoin.Printer, io.Closer, error) {
-	var printer hoin.Printer
+func connect(args *Arguments) (*escpos.Printer, io.Closer, error) {
+	var printer escpos.Printer
 	var cl io.Closer
 	if args.Address != "" {
 		conn, err := net.Dial("tcp", args.Address)
@@ -84,7 +84,7 @@ func connect(args *Arguments) (*hoin.Printer, io.Closer, error) {
 			return nil, nil, fmt.Errorf("unable to dial: %w", err)
 		}
 		cl = conn
-		printer = hoin.NewPrinter(conn)
+		printer = escpos.NewPrinter(conn)
 
 	} else if args.Device != "" {
 		file, err := os.OpenFile(args.Device, os.O_RDWR, 0660)
@@ -92,7 +92,7 @@ func connect(args *Arguments) (*hoin.Printer, io.Closer, error) {
 			return nil, nil, fmt.Errorf("unable to open device: %w", err)
 		}
 		cl = file
-		printer = hoin.NewPrinter(file)
+		printer = escpos.NewPrinter(file)
 	} else {
 		return nil, nil, fmt.Errorf("Unable to determine printer address")
 	}
@@ -100,7 +100,7 @@ func connect(args *Arguments) (*hoin.Printer, io.Closer, error) {
 	return &printer, cl, nil
 }
 
-func run(args *Arguments, printer *hoin.Printer) error {
+func run(args *Arguments, printer *escpos.Printer) error {
 	switch {
 	case args.Feed != nil:
 		var err error
@@ -115,7 +115,10 @@ func run(args *Arguments, printer *hoin.Printer) error {
 		}
 
 	case args.Cut != nil:
-		printer.Cut()
+		err := printer.Cut()
+		if err != nil {
+			return err
+		}
 
 	case args.Text != nil:
 		var raw []byte
@@ -132,7 +135,7 @@ func run(args *Arguments, printer *hoin.Printer) error {
 		words := strings.Split(string(raw), " ")
 
 		for _, word := range words {
-			err = printer.Print(word+" ")
+			err = printer.Print(word + " ")
 			if err != nil {
 				return err
 			}
@@ -198,7 +201,7 @@ func run(args *Arguments, printer *hoin.Printer) error {
 			return err
 		}
 
-		err = printer.PrintImage24(img, hoin.DoubleDensity)
+		err = printer.PrintImage24(img, escpos.DoubleDensity)
 		if err != nil {
 			return err
 		}
