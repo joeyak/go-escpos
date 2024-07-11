@@ -197,7 +197,7 @@ func run(args *Arguments, printer *escpos.Printer) error {
 			return err
 		}
 
-		words := strings.Split(string(raw), " ")
+		words := strings.Split(strings.TrimRight(string(raw), "\r\n"), " ")
 
 		for _, word := range words {
 			err = printer.Print(word + " ")
@@ -211,10 +211,11 @@ func run(args *Arguments, printer *escpos.Printer) error {
 			//}
 		}
 
+		err = printer.LF()
 		//err = printer.Print(string(raw))
-		//if err != nil {
-		//	return err
-		//}
+		if err != nil {
+			return err
+		}
 
 	case args.Tabs != nil:
 		var err error
