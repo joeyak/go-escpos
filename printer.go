@@ -631,6 +631,23 @@ func (p Printer) SetCharacterSize(width, height int) error {
 	return nil
 }
 
+// SetUpsideDown will either set or clear printing text upside-down.  This
+// setting does not affect images or barcodes.
+func (p Printer) SetUpsideDown(upsidedown bool) error {
+	var val uint8 = 0
+	if upsidedown {
+		val = 1
+	}
+
+	fmt.Printf("upside-down %X\n", val)
+
+	_, err := p.Write([]byte{ESC, '{', val})
+	if err != nil {
+		return fmt.Errorf("could not set upside-down mode: %w", err)
+	}
+	return nil
+}
+
 func checkBarcodeCodabarData(data string) error {
 	body := "0123456789-$:/.+"
 	wrappers := "ABCD"

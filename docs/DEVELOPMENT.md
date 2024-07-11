@@ -68,7 +68,7 @@ Programmer Manual Commands:
   - CutFeed()
 - [ ] ESC p m t1 t2 ~ Generate pulse
 - [ ] ESC t n ~ Select character code table
-- [ ] ESC { n ~ Turns on/off upside-down printing mode
+- [x] ESC { n ~ Turns on/off upside-down printing mode
 - [ ] FS p n m ~ Print NV bit image
 - [ ] FS q n [xL xH yL yH d1...dk]<sub>1</sub>...[xL xH yL yH d1...dk]<sub>n</sub> ~ Define NV bit image
 - [x] GS ! n ~ Select character size

@@ -54,6 +54,8 @@ type Arguments struct {
 
 	CharWidth  int `arg:"--char-width"  help:"Character width. Valid values are 0-7." default:"-1"`
 	CharHeight int `arg:"--char-height" help:"Character width. Valid values are 0-7." default:"-1"`
+
+	UpsideDown string `arg:"--upside-down"`
 }
 
 func (a *Arguments) Description() string {
@@ -85,6 +87,20 @@ func main() {
 
 	if args.CharWidth > -1 || args.CharHeight > -1 {
 		err = charSize(args, printer)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+
+	if args.UpsideDown != "" {
+		switch args.UpsideDown {
+		case "on", "true":
+			err = printer.SetUpsideDown(true)
+		default:
+			err = printer.SetUpsideDown(false)
+		}
+
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
