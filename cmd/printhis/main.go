@@ -72,12 +72,12 @@ func main() {
 		args.Address = escpos.DefaultPrinterIP
 	}
 
-	printer, closer, err := connect(args)
+	printer, err := connect(args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	defer closer.Close()
+	defer printer.Close()
 
 	err = justify(args, printer)
 	if err != nil {
@@ -156,29 +156,26 @@ func justify(args *Arguments, printer *escpos.Printer) error {
 	return nil
 }
 
-func connect(args *Arguments) (*escpos.Printer, io.Closer, error) {
+func connect(args *Arguments) (*escpos.Printer, error) {
 	var printer escpos.Printer
-	var cl io.Closer
 	if args.Address != "" {
 		conn, err := net.Dial("tcp", args.Address)
 		if err != nil {
-			return nil, nil, fmt.Errorf("unable to dial: %w", err)
+			return nil, fmt.Errorf("unable to dial: %w", err)
 		}
-		cl = conn
 		printer = escpos.NewPrinter(conn)
 
 	} else if args.Device != "" {
 		file, err := os.OpenFile(args.Device, os.O_RDWR, 0660)
 		if err != nil {
-			return nil, nil, fmt.Errorf("unable to open device: %w", err)
+			return nil, fmt.Errorf("unable to open device: %w", err)
 		}
-		cl = file
 		printer = escpos.NewPrinter(file)
 	} else {
-		return nil, nil, fmt.Errorf("Unable to determine printer address")
+		return nil, fmt.Errorf("Unable to determine printer address")
 	}
 
-	return &printer, cl, nil
+	return &printer, nil
 }
 
 func run(args *Arguments, printer *escpos.Printer) error {
