@@ -605,6 +605,32 @@ func (p Printer) SetBarCodeHeight(n int) error {
 	return nil
 }
 
+// SetCharacterSize sets both the width and height of text characters.  The
+// values for height and width must be between 0 and 7, inclusively.
+//
+// While the printer may accept all valid values, it may not print text
+// correctly.
+func (p Printer) SetCharacterSize(width, height int) error {
+	errMsg := "could not set character size: %w"
+
+	err := checkRange(width, 0, 7, "character width")
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
+	}
+
+	err = checkRange(height, 0, 7, "character height")
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
+	}
+
+	_, err = p.Write([]byte{GS, '!', uint8(width) << 4 | uint8(height)})
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
+	}
+
+	return nil
+}
+
 func checkBarcodeCodabarData(data string) error {
 	body := "0123456789-$:/.+"
 	wrappers := "ABCD"

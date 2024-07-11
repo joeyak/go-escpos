@@ -71,7 +71,7 @@ Programmer Manual Commands:
 - [ ] ESC { n ~ Turns on/off upside-down printing mode
 - [ ] FS p n m ~ Print NV bit image
 - [ ] FS q n [xL xH yL yH d1...dk]<sub>1</sub>...[xL xH yL yH d1...dk]<sub>n</sub> ~ Define NV bit image
-- [ ] GS ! n ~ Select character size
+- [x] GS ! n ~ Select character size
 - [ ] GS $ nL nH ~ Set absolute vertical print position in page mode
 - [ ] GS \* x y d1...d(x×y×8) ~ Define downloaded bit image
 - [ ] GS / m ~ Print downloaded bit image

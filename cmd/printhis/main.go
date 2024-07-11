@@ -36,16 +36,24 @@ type CmdFeed struct {
 	Lines  bool `arg:"-l,--lines" help:"Use the line height as the unit of measurement."`
 }
 
+type CmdSizes struct{
+	Text string `arg:"positional" help:"Sample text to use instead of 'size WxH'."`
+}
+
 type Arguments struct {
 	Text  *CmdText  `arg:"subcommand:text"  help:"Print text"`
 	Tabs  *CmdTabs  `arg:"subcommand:tabs"  help:"Print the tabstop locations"`
 	Image *CmdImage `arg:"subcommand:image" help:"Print an image"`
 	Cut   *CmdCut   `arg:"subcommand:cut"   help:"Cut the paper"`
 	Feed  *CmdFeed  `arg:"subcommand:feed"  help:"Feed the paper"`
+	Sizes *CmdSizes `arg:"subcommand:sizes" help:"Print out all character width and height combinations"`
 
 	Address string `arg:"-a,--addr" help:"IP address and port of printer"`
 	Device  string `arg:"-d,--dev" help:"USB device of printer"`
 	Justify string `arg:"-j,--justify"`
+
+	CharWidth  int `arg:"--char-width"  help:"Character width. Valid values are 0-7." default:"-1"`
+	CharHeight int `arg:"--char-height" help:"Character width. Valid values are 0-7." default:"-1"`
 }
 
 func (a *Arguments) Description() string {
@@ -75,11 +83,31 @@ func main() {
 		os.Exit(1)
 	}
 
+	if args.CharWidth > -1 || args.CharHeight > -1 {
+		err = charSize(args, printer)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+
 	err = run(args, printer)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func charSize(args *Arguments, printer *escpos.Printer) error {
+	if args.CharWidth < 0 {
+		args.CharWidth = 0
+	}
+
+	if args.CharHeight < 0 {
+		args.CharHeight = 0
+	}
+
+	return printer.SetCharacterSize(args.CharWidth, args.CharHeight)
 }
 
 func justify(args *Arguments, printer *escpos.Printer) error {
@@ -241,6 +269,30 @@ func run(args *Arguments, printer *escpos.Printer) error {
 		err = printer.PrintImage24(img, escpos.DoubleDensity)
 		if err != nil {
 			return err
+		}
+
+	case args.Sizes != nil:
+		for w := 0; w < 8; w++ {
+			for h := 0; h < 8; h++ {
+				err := printer.SetCharacterSize(w, h)
+				if err != nil {
+					return err
+				}
+
+				if args.Sizes.Text != "" {
+					err = printer.Println(args.Sizes.Text)
+				} else {
+					err = printer.Printf("size %dx%d", w, h)
+					if err != nil {
+						return err
+					}
+
+					err = printer.LF()
+				}
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 	default:
