@@ -45,6 +45,7 @@ type Arguments struct {
 
 	Address string `arg:"-a,--addr" help:"IP address and port of printer"`
 	Device  string `arg:"-d,--dev" help:"USB device of printer"`
+	Justify string `arg:"-j,--justify"`
 }
 
 func (a *Arguments) Description() string {
@@ -68,11 +69,47 @@ func main() {
 	}
 	defer closer.Close()
 
+	err = justify(args, printer)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	err = run(args, printer)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func justify(args *Arguments, printer *escpos.Printer) error {
+	if args.Justify == "" {
+		return nil
+	}
+
+	var j escpos.Justification
+	switch strings.ToLower(args.Justify) {
+	case "left":
+		j = escpos.LeftJustify
+	case "right":
+		j = escpos.RightJustify
+	case "center":
+		j = escpos.CenterJustify
+	default:
+		return fmt.Errorf("invalid justification")
+	}
+
+	err := printer.Justify(j)
+	if err != nil {
+		return err
+	}
+
+	//_, err = printer.TransmitErrorStatus()
+	//if err != nil {
+	//	return fmt.Errorf("TransmitErrorStatus(): %w", err)
+	//}
+
+	return nil
 }
 
 func connect(args *Arguments) (*escpos.Printer, io.Closer, error) {
