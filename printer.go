@@ -455,7 +455,7 @@ func (p Printer) PrintImage8(img image.Image, density Density) error {
 			for i := 0; i < 8; i++ {
 				col <<= 1
 				// Pad the bottom row to be white
-				if y+i > imgRect.Max.Y {
+				if y+i >= imgRect.Max.Y {
 					continue
 				}
 				c := color.GrayModel.Convert(img.At(x, y+i)).(color.Gray)
@@ -517,7 +517,7 @@ func (p Printer) PrintImage24(img image.Image, density Density) error {
 				for i := 0; i < 8; i++ {
 					col <<= 1
 					// Pad the bottom row to be white
-					if (y+z*8)+i > imgRect.Max.Y {
+					if (y+z*8)+i >= imgRect.Max.Y {
 						continue
 					}
 
