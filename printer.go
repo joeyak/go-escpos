@@ -11,7 +11,7 @@ import (
 
 const (
 	// Default ip and port for hoin printers
-	DefaultPrinterIP = "192.168.1.23:9100"
+	DefaultHoinIP = "192.168.1.23:9100"
 
 	HT  = 0x09
 	LF  = 0x0A
@@ -105,10 +105,10 @@ func boolToByte(b bool) byte {
 }
 
 type Printer struct {
-	dst io.ReadWriter
+	dst io.ReadWriteCloser
 }
 
-func NewPrinter(dst io.ReadWriter) Printer {
+func NewPrinter(dst io.ReadWriteCloser) Printer {
 	return Printer{
 		dst: dst,
 	}
@@ -623,7 +623,7 @@ func (p Printer) SetCharacterSize(width, height int) error {
 		return fmt.Errorf(errMsg, err)
 	}
 
-	_, err = p.Write([]byte{GS, '!', uint8(width) << 4 | uint8(height)})
+	_, err = p.Write([]byte{GS, '!', uint8(width)<<4 | uint8(height)})
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}

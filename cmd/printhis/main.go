@@ -6,7 +6,6 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -36,7 +35,7 @@ type CmdFeed struct {
 	Lines  bool `arg:"-l,--lines" help:"Use the line height as the unit of measurement."`
 }
 
-type CmdSizes struct{
+type CmdSizes struct {
 	Text string `arg:"positional" help:"Sample text to use instead of 'size WxH'."`
 }
 
@@ -70,16 +69,15 @@ func main() {
 	args := &Arguments{}
 	arg.MustParse(args)
 
-
 	if args.Address == "" && args.Device == "" {
 		if args.EnvDevice != "" {
 			err := getEnvDevice(args)
 			if err != nil {
-				args.Address = escpos.DefaultPrinterIP
+				args.Address = escpos.DefaultHoinIP
 				fmt.Println(err)
 			}
 		} else {
-			args.Address = escpos.DefaultPrinterIP
+			args.Address = escpos.DefaultHoinIP
 		}
 	}
 
@@ -198,25 +196,21 @@ func justify(args *Arguments, printer *escpos.Printer) error {
 }
 
 func connect(args *Arguments) (*escpos.Printer, error) {
-	var printer escpos.Printer
 	if args.Address != "" {
-		conn, err := net.Dial("tcp", args.Address)
+		printer, err := escpos.NewIpPrinter(args.Address)
 		if err != nil {
-			return nil, fmt.Errorf("unable to dial: %w", err)
+			return nil, err
 		}
-		printer = escpos.NewPrinter(conn)
-
+		return &printer, nil
 	} else if args.Device != "" {
 		file, err := os.OpenFile(args.Device, os.O_RDWR, 0660)
 		if err != nil {
 			return nil, fmt.Errorf("unable to open device: %w", err)
 		}
-		printer = escpos.NewPrinter(file)
-	} else {
-		return nil, fmt.Errorf("Unable to determine printer address")
+		printer := escpos.NewPrinter(file)
+		return &printer, nil
 	}
-
-	return &printer, nil
+	return nil, fmt.Errorf("unable to determine printer address")
 }
 
 func run(args *Arguments, printer *escpos.Printer) error {

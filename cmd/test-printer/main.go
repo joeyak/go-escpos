@@ -8,11 +8,25 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alexflint/go-arg"
 	"github.com/joeyak/go-escpos"
 )
 
-func runTest(testName string, testFunc func(escpos.Printer) error) error {
-	printer, err := escpos.NewIpPrinter(escpos.DefaultPrinterIP)
+func connect(args *Arguments) (escpos.Printer, error) {
+	if args.Address != "" {
+		return escpos.NewIpPrinter(args.Address)
+	} else if args.Device != "" {
+		file, err := os.OpenFile(args.Device, os.O_RDWR, 0660)
+		if err != nil {
+			return escpos.Printer{}, fmt.Errorf("unable to open device: %w", err)
+		}
+		return escpos.NewPrinter(file), nil
+	}
+	return escpos.Printer{}, fmt.Errorf("unable to determine printer address")
+}
+
+func runTest(args *Arguments, testName string, testFunc func(escpos.Printer) error) error {
+	printer, err := connect(args)
 	if err != nil {
 		return fmt.Errorf("failed test %s: %w", testName, err)
 	}
@@ -30,8 +44,8 @@ func runTest(testName string, testFunc func(escpos.Printer) error) error {
 	return nil
 }
 
-func cleanup() {
-	printer, err := escpos.NewIpPrinter(escpos.DefaultPrinterIP)
+func cleanup(args *Arguments) {
+	printer, err := connect(args)
 	if err != nil {
 		fmt.Printf("could not create new printer to feed lines: %s\n", err)
 		os.Exit(1)
@@ -42,7 +56,19 @@ func cleanup() {
 	printer.FeedLines(10)
 }
 
+type Arguments struct {
+	Address string `arg:"-a,--addr" help:"IP address and port of printer"`
+	Device  string `arg:"-d,--dev" help:"USB device of printer"`
+}
+
 func main() {
+	args := &Arguments{}
+	arg.MustParse(args)
+
+	if args.Address == "" && args.Device == "" {
+		args.Address = escpos.DefaultHoinIP
+	}
+
 	tests := []func(escpos.Printer) error{
 		testBeep,
 		testHT,
@@ -60,7 +86,7 @@ func main() {
 		testName := strings.TrimPrefix(runtime.FuncForPC(reflect.ValueOf(test).Pointer()).Name(), "main.")
 		fmt.Printf("Running test [%d/%d] %s - ", i+1, len(tests), testName)
 
-		err := runTest(testName, test)
+		err := runTest(args, testName, test)
 		if err != nil {
 			fmt.Println("fail")
 			errors = append(errors, err)
@@ -69,7 +95,7 @@ func main() {
 		fmt.Println("pass")
 	}
 
-	cleanup()
+	cleanup(args)
 
 	if len(errors) > 0 {
 		fmt.Printf("%d errors occured\n", len(errors))
