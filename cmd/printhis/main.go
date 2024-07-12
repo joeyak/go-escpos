@@ -56,6 +56,8 @@ type Arguments struct {
 	CharHeight int `arg:"--char-height" help:"Character width. Valid values are 0-7." default:"-1"`
 
 	UpsideDown string `arg:"--upside-down"`
+
+	EnvDevice string `arg:"env:ESCPOS_DEVICE"`
 }
 
 func (a *Arguments) Description() string {
@@ -68,8 +70,17 @@ func main() {
 	args := &Arguments{}
 	arg.MustParse(args)
 
+
 	if args.Address == "" && args.Device == "" {
-		args.Address = escpos.DefaultPrinterIP
+		if args.EnvDevice != "" {
+			err := getEnvDevice(args)
+			if err != nil {
+				args.Address = escpos.DefaultPrinterIP
+				fmt.Println(err)
+			}
+		} else {
+			args.Address = escpos.DefaultPrinterIP
+		}
 	}
 
 	printer, err := connect(args)
@@ -112,6 +123,36 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func getEnvDevice(args *Arguments) error {
+	if args.EnvDevice == "" {
+		return nil
+	} else if !strings.Contains(args.EnvDevice, `://`) {
+		err := fmt.Errorf("invalid ESCPOS_DEVICE value %q\n", args.EnvDevice)
+		args.EnvDevice = ""
+		return err
+	}
+
+	parts := strings.SplitN(args.EnvDevice, `://`, 2)
+	if len(parts) != 2 {
+		err := fmt.Errorf("invalid ESCPOS_DEVICE value %q\n", args.EnvDevice)
+		args.EnvDevice = ""
+		return err
+	}
+
+	switch parts[0] {
+	case "file":
+		args.Device = parts[1]
+	case "tcp":
+		args.Address = parts[1]
+	default:
+		err := fmt.Errorf("invalid ESCPOS_DEVICE value %q\n", args.EnvDevice)
+		args.EnvDevice = ""
+		return err
+	}
+
+	return nil
 }
 
 func charSize(args *Arguments, printer *escpos.Printer) error {
