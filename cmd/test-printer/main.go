@@ -12,23 +12,42 @@ import (
 
 	"github.com/alexflint/go-arg"
 	"github.com/joeyak/go-escpos"
+	"github.com/joeyak/go-escpos/cmd"
 )
 
-func connect(args *Arguments) (escpos.Printer, error) {
-	if args.Address != "" {
-		return escpos.NewIpPrinter(args.Address)
-	} else if args.Device != "" {
-		file, err := os.OpenFile(args.Device, os.O_RDWR, 0660)
-		if err != nil {
-			return escpos.Printer{}, fmt.Errorf("unable to open device: %w", err)
-		}
-		return escpos.NewPrinter(file), nil
+func connect(addresses []string) (escpos.Printer, error) {
+	if len(addresses) == 0 {
+		return escpos.Printer{}, fmt.Errorf("unable to determine printer address")
 	}
-	return escpos.Printer{}, fmt.Errorf("unable to determine printer address")
+
+	var printers []escpos.Printer
+
+	for _, address := range addresses {
+		if _, err := os.Open(address); err == nil {
+			file, err := os.OpenFile(address, os.O_RDWR, 0660)
+			if err != nil {
+				return escpos.Printer{}, fmt.Errorf("unable to open device: %w", err)
+			}
+			printers = append(printers, escpos.NewPrinter(file))
+			continue
+		}
+
+		printer, err := escpos.NewIpPrinter(address)
+		if err != nil {
+			return escpos.Printer{}, err
+		}
+		printers = append(printers, printer)
+	}
+
+	if len(printers) == 1 {
+		return printers[0], nil
+	}
+
+	return escpos.NewPrinter(cmd.NewMultiPrinter(printers...)), nil
 }
 
-func runTest(args *Arguments, testName string, testFunc func(escpos.Printer) error) error {
-	printer, err := connect(args)
+func runTest(addresses []string, testName string, testFunc func(escpos.Printer) error) error {
+	printer, err := connect(addresses)
 	if err != nil {
 		return fmt.Errorf("failed test %s: %w", testName, err)
 	}
@@ -46,8 +65,8 @@ func runTest(args *Arguments, testName string, testFunc func(escpos.Printer) err
 	return nil
 }
 
-func cleanup(args *Arguments) {
-	printer, err := connect(args)
+func cleanup(addresses []string) {
+	printer, err := connect(addresses)
 	if err != nil {
 		fmt.Printf("could not create new printer to feed lines: %s\n", err)
 		os.Exit(1)
@@ -59,18 +78,17 @@ func cleanup(args *Arguments) {
 }
 
 type Arguments struct {
-	Address string   `arg:"-a,--addr" help:"IP address and port of printer"`
-	Device  string   `arg:"-d,--dev" help:"USB device of printer"`
-	Filters []string `arg:"positional" help:"the name of the function to test - test<FILTER>"`
-	List    bool     `arg:"--list" help:"print out list of test functions"`
+	Addresses []string `arg:"positional" help:"IP address and port of printer or USB device"`
+	Filters   []string `arg:"-f,--filter" help:"the name of the function to test - test<FILTER>"`
+	List      bool     `arg:"--list" help:"print out list of test functions"`
 }
 
 func main() {
 	args := &Arguments{}
 	arg.MustParse(args)
 
-	if args.Address == "" && args.Device == "" {
-		args.Address = escpos.DefaultHoinIP
+	if len(args.Addresses) == 0 {
+		args.Addresses = []string{escpos.DefaultHoinIP}
 	}
 
 	tests := []func(escpos.Printer) error{
@@ -105,7 +123,7 @@ func main() {
 
 		fmt.Printf("Running test [%d/%d] %s - ", i+1, len(tests), testName)
 
-		err := runTest(args, testName, test)
+		err := runTest(args.Addresses, testName, test)
 		if err != nil {
 			fmt.Println("fail")
 			errors = append(errors, err)
@@ -116,7 +134,7 @@ func main() {
 		time.Sleep(time.Millisecond * 250)
 	}
 
-	cleanup(args)
+	cleanup(args.Addresses)
 
 	if len(errors) > 0 {
 		fmt.Printf("%d errors occured\n", len(errors))
