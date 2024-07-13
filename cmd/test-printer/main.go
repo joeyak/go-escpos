@@ -55,7 +55,7 @@ func cleanup(args *Arguments) {
 	defer printer.Close()
 
 	printer.Println("##### ", time.Now().Format(time.DateOnly+" "+time.Kitchen), " #####")
-	printer.Feed(10)
+	printer.FeedLines(10)
 }
 
 type Arguments struct {
@@ -112,6 +112,8 @@ func main() {
 		}
 
 		fmt.Println("pass")
+
+		time.Sleep(time.Millisecond * 250)
 	}
 
 	cleanup(args)
@@ -338,18 +340,18 @@ func testJustify(printer escpos.Printer) error {
 }
 
 func testFeed(printer escpos.Printer) error {
-	for _, lines := range []int{10, 100, 255} {
-		err := printer.Println("------------")
-		if err != nil {
-			return fmt.Errorf("could not print before line for %d lines: %w", lines, err)
-		}
+	err := printer.Println("------------")
+	if err != nil {
+		return fmt.Errorf("could not print before line: %w", err)
+	}
 
+	for _, lines := range []int{10, 100, 255} {
 		err = printer.Feed(lines)
 		if err != nil {
 			return err
 		}
 
-		err = printer.Println("------------")
+		err = printer.Printf("------------ %d\n", lines)
 		if err != nil {
 			return fmt.Errorf("could not print after line for %d lines: %w", lines, err)
 		}
@@ -359,18 +361,18 @@ func testFeed(printer escpos.Printer) error {
 }
 
 func testFeedLines(printer escpos.Printer) error {
-	for _, lines := range []int{10, 20, 30} {
-		err := printer.Println("------------")
-		if err != nil {
-			return fmt.Errorf("could not print before line for %d lines: %w", lines, err)
-		}
+	err := printer.Println("------------")
+	if err != nil {
+		return fmt.Errorf("could not print before line: %w", err)
+	}
 
+	for _, lines := range []int{1, 5, 10} {
 		err = printer.FeedLines(lines)
 		if err != nil {
 			return err
 		}
 
-		err = printer.Println("------------")
+		err = printer.Printf("------------ %d\n", lines)
 		if err != nil {
 			return fmt.Errorf("could not print after line for %d lines: %w", lines, err)
 		}
