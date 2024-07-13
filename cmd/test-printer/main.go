@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"slices"
+
 	"github.com/alexflint/go-arg"
 	"github.com/joeyak/go-escpos"
 )
@@ -53,12 +55,14 @@ func cleanup(args *Arguments) {
 	defer printer.Close()
 
 	printer.Println("##### ", time.Now().Format(time.DateOnly+" "+time.Kitchen), " #####")
-	printer.FeedLines(10)
+	printer.Feed(10)
 }
 
 type Arguments struct {
-	Address string `arg:"-a,--addr" help:"IP address and port of printer"`
-	Device  string `arg:"-d,--dev" help:"USB device of printer"`
+	Address string   `arg:"-a,--addr" help:"IP address and port of printer"`
+	Device  string   `arg:"-d,--dev" help:"USB device of printer"`
+	Filters []string `arg:"positional" help:"the name of the function to test - test<FILTER>"`
+	List    bool     `arg:"--list" help:"print out list of test functions"`
 }
 
 func main() {
@@ -78,12 +82,27 @@ func main() {
 		testReversePrinter,
 		testFonts,
 		testJustify,
+		testFeed,
+		testFeedLines,
+	}
+
+	if args.List {
+		fmt.Println("Test Filters:")
+		for _, test := range tests {
+			fmt.Println(strings.TrimPrefix(runtime.FuncForPC(reflect.ValueOf(test).Pointer()).Name(), "main.test"))
+		}
+		return
 	}
 
 	var errors []error
 
 	for i, test := range tests {
-		testName := strings.TrimPrefix(runtime.FuncForPC(reflect.ValueOf(test).Pointer()).Name(), "main.")
+		testName := strings.TrimPrefix(runtime.FuncForPC(reflect.ValueOf(test).Pointer()).Name(), "main.test")
+
+		if len(args.Filters) > 0 && !slices.Contains(args.Filters, testName) {
+			continue
+		}
+
 		fmt.Printf("Running test [%d/%d] %s - ", i+1, len(tests), testName)
 
 		err := runTest(args, testName, test)
@@ -313,6 +332,48 @@ func testJustify(printer escpos.Printer) error {
 	err = printer.Println("Right Justify")
 	if err != nil {
 		return fmt.Errorf("could not print Right Justify: %w", err)
+	}
+
+	return nil
+}
+
+func testFeed(printer escpos.Printer) error {
+	for _, lines := range []int{10, 100, 255} {
+		err := printer.Println("------------")
+		if err != nil {
+			return fmt.Errorf("could not print before line for %d lines: %w", lines, err)
+		}
+
+		err = printer.Feed(lines)
+		if err != nil {
+			return err
+		}
+
+		err = printer.Println("------------")
+		if err != nil {
+			return fmt.Errorf("could not print after line for %d lines: %w", lines, err)
+		}
+	}
+
+	return nil
+}
+
+func testFeedLines(printer escpos.Printer) error {
+	for _, lines := range []int{10, 20, 30} {
+		err := printer.Println("------------")
+		if err != nil {
+			return fmt.Errorf("could not print before line for %d lines: %w", lines, err)
+		}
+
+		err = printer.FeedLines(lines)
+		if err != nil {
+			return err
+		}
+
+		err = printer.Println("------------")
+		if err != nil {
+			return fmt.Errorf("could not print after line for %d lines: %w", lines, err)
+		}
 	}
 
 	return nil
