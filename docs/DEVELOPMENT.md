@@ -23,7 +23,7 @@ Programmer Manual Commands:
   - TransmitPaperSensorStatus()
 - [ ] DLE DC4 n m t ~ Generate pulse at real-time
 - [ ] ESC SP n ~ Set right-side character spacing
-- [ ] ESC ! n ~ Select print mode(s)
+- [x] ESC ! n ~ Select print mode(s)
 - [ ] ESC $ nL nH ~ Set absolute print position
 - [ ] ESC % n ~ Select/cancel user-defined character set
 - [ ] ESC & y c1 c2 [x1 d1...d(x×x1)]...[xk d1...d(y×xK)] ~ Define user defined characters
