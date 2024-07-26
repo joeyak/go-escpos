@@ -69,6 +69,23 @@ const (
 	BcCODE123 BarCode = 73
 )
 
+type PrintModeMask byte
+
+const (
+	// bit 0: Font selection, 0: Font A (normal), 1: Font B (thin)
+	ThinFont PrintModeMask = 1 << 0
+	// bit 1 and 2 are unused
+	// bit 3: Bold, 0: Off, 1: On
+	Bold PrintModeMask = 1 << 3
+	// bit 4: Double height, 0: Off, 1: On
+	DoubleHeight PrintModeMask = 1 << 4
+	// bit 5: Double width, 0: Off, 1
+	DoubleWidth PrintModeMask = 1 << 5
+	// bit 6 unused
+	// bit 7: Underline, 0: Off, 1: On
+	Underline PrintModeMask = 1 << 7
+)
+
 var (
 	lengthBarcodes = []BarCode{BcCODE93, BcCODE123}
 	allBarcodes    = append(lengthBarcodes, BcUPCA, BcUPCE, BcJAN13, BcJAN8, BcCODE39, BcITF, BcCODABAR)
@@ -777,5 +794,26 @@ func (p Printer) PrintBarCode(barcodeType BarCode, data string) error {
 		return fmt.Errorf(errMsg, err)
 	}
 
+	return nil
+}
+
+// SelectPrintMode sets the print mode for the printer.
+// The modes are as follows and are provided as variadic arguments:
+//   - ThinFont: Font selection, 0: Font A (normal), 1: Font B (thin)
+//   - Bold: Emphasized mode, 0: Off, 1: On
+//     (Emphasized mode just prints the text bold, hence the flag is named 'bold')
+//   - DoubleHeight: Double height, 0: Off (normal), 1: On (double height font)
+//   - DoubleWidth: Double width, 0: Off (normal), 1: On (double width font)
+//   - Underline: Underline, 0: Off (normal), 1: On (underlined font)
+func (p Printer) SelectPrintMode(modes ...PrintModeMask) error {
+	errMsg := "could not select print mode: %w"
+	var mask byte
+	for _, mode := range modes {
+		mask |= byte(mode)
+	}
+	_, err := p.Write([]byte{ESC, '!', mask})
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
+	}
 	return nil
 }
