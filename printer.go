@@ -69,7 +69,7 @@ const (
 	BcCODE123 BarCode = 73
 )
 
-type PrintModeMask byte
+type PrintModeMask int
 
 const (
 	// bit 0: Font selection, 0: Font A (normal), 1: Font B (thin)
@@ -807,6 +807,14 @@ func (p Printer) PrintBarCode(barcodeType BarCode, data string) error {
 //   - Underline: Underline, 0: Off (normal), 1: On (underlined font)
 func (p Printer) SelectPrintMode(modes ...PrintModeMask) error {
 	errMsg := "could not select print mode: %w"
+
+	for _, mode := range modes {
+		err := checkEnum(mode, ThinFont, Bold, DoubleHeight, DoubleWidth, Underline)
+		if err != nil {
+			return fmt.Errorf(errMsg, err)
+		}
+	}
+
 	var mask byte
 	for _, mode := range modes {
 		mask |= byte(mode)
